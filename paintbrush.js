@@ -295,7 +295,8 @@ void main() {
 	}
 	
 	draw(item){
-		var {type, position, status} = item,
+		var {width, height} = this,
+			{type, position, status} = item,
 			brush = this.brush[type],
 			{data, attribute, stride, count} = brush;
 		
@@ -306,7 +307,7 @@ void main() {
 			}
 		}
 		
-		setData(attribute.position[0], attribute.position[1], position);
+		setData(attribute.position[0], attribute.position[1], [(position[0]-width/2) / (width/2), (position[1]-height/2) / -(height/2)]);
 		for(let k in status){
 			if(attribute[k]){
 				if(status[k].length){
