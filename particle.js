@@ -64,6 +64,10 @@ class Particle{
 			let item = this.data[i];
 			this.paintbrush(item);
 		}
+		
+		if(this.finishBrush){
+			this.finishBrush();
+		}
 	}
 	
 	animate = (now)=>{

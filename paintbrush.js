@@ -36,18 +36,20 @@ point_vertex:
 
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
-in vec4 a_position;
-uniform vec2 u_position;
-uniform float u_deep;
-uniform float u_size;
+in vec2 a_position;
+in float a_deep;
+in float a_size;
+in vec4 a_color;
+out vec4 color;
 
 // all shaders have a main function
 void main() {
 
   // gl_Position is a special variable a vertex shader
   // is responsible for setting
-  gl_PointSize = u_size;
-  gl_Position = a_position + vec4(u_position, u_deep, 0.0);
+  gl_PointSize = a_size;
+  gl_Position = vec4(a_position, a_deep, 0.0);
+  color = a_color;
 }
 `,
 point_frag: 
@@ -58,16 +60,12 @@ point_frag:
 precision mediump float;
 
 // we need to declare an output for the fragment shader
-uniform float u_r;
-uniform float u_g;
-uniform float u_b;
-uniform float u_a;
 
 out vec4 outColor;
 
 void main() {
   // Just set the output to a constant redish-purple
-  outColor = vec4(u_r, u_g, u_b, u_a);
+  outColor = color;
 }
 `,
 // line
@@ -139,9 +137,15 @@ void main() {
 			vs: 'point_vertex',
 			fs: 'point_frag',
 			program: null,
-			data: [0],
-			offset: 0,
-			count: 1,
+			data: [],
+			length: 0,
+			attribute: {
+				position: 2,
+				deep: 1,
+				size: 1,
+				color: 4,
+			},
+			
 			vao: null,
 			type: 'POINT'
 		},
@@ -164,24 +168,6 @@ void main() {
 				program = createProgram(gl, vertexShader, fragmentShader);
 				
 			this.brush[k].program = program;
-			
-			var {data} = brush,
-				positionAttributeLocation = gl.getAttribLocation(program, "a_position"),
-				positionBuffer = gl.createBuffer(),
-				vao = gl.createVertexArray();
-			
-			gl.bindVertexArray(vao);
-			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-			
-			gl.enableVertexAttribArray(positionAttributeLocation);
-			gl.vertexAttribPointer(
-				positionAttributeLocation, 1, gl.FLOAT, false, 0, 0);
-			
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
-			gl.bindVertexArray(null);
-			
-			this.brush[k].vao = vao;
 		}
 		
 		for(var k in this.brush){
@@ -198,6 +184,62 @@ void main() {
 		this.gl = gl;
 		this.resize();
 		this.makeBrushes();
+	}
+	
+	initBuffer(type, sum){
+		var gl = this.gl,
+			brush = this.brush[type],
+			{data, attribute, program} = brush,
+			attrNameList = [],
+			attrOffsetCountMap = {};
+			
+		var offset = 0;
+		for(let k in attribute){
+			let count = attribute[k];
+			
+			attrNameList.push(k);
+			attrOffsetCountMap[k] = [];
+			attrOffsetCountMap[k][0] = offset;
+			attrOffsetCountMap[k][1] = count;
+			offset += count;
+			
+			attrNameList.push(k);
+		}
+		
+		for(let i=0; i<sum; i++){
+			function pushZero(data, sum){
+				for(let i=0; i<sum; i++){
+					data.push(0);
+				}
+			}
+			pushZero(data, offset);
+		}
+			
+		var vao = gl.createVertexArray(),
+			buffer = gl.createBuffer();
+		gl.bindVertexArray(vao);
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+		
+		function setPointer(attrName, stride){
+			var attributeLocation = gl.getAttribLocation(program, "a_"+attrName),
+				offset = attrOffsetCountMap[attrName][0],
+				count = attrOffsetCountMap[attrName][1];
+			
+			gl.enableVertexAttribArray(attributeLocation);
+			gl.vertexAttribPointer(
+				attributeLocation, count, gl.FLOAT, false, stride, offset);
+		}
+		for(let i=0; i<attrNameList.length; i++){
+			setPointer(attrNameList[i], offset);
+		}
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindVertexArray(null);
+		
+		
+		
+		brush.vao = vao;
 	}
 		
 	setUniform(program, position, status){

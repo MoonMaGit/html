@@ -35,14 +35,10 @@ for(let i=0; i<200; i++){
 	pt.position = [500-4*i, 0+(4*i)];
 	pt.status = {
 		t: Math.random()*Math.PI*2,
-		x: 0.1,
-		y: 0.1,
 		
+		deep: 0,
 		size: 4,
-		r: 1,
-		g: 0,
-		b: 0,
-		a: 0.5,
+		color: [1, 0, 0, 0.5],
 	};
 	pt.track = function(time, mouse, relationship){
 		var {x, y} = this.status;
@@ -69,9 +65,9 @@ for(let i=0; i<200; i++){
 			d = x_d*x_d + y_d*y_d,
 			t = d/40000<1? d/40000: 1;
 		
-		status.r = 1 * t;
-		status.g = 1 * (1-t);
-		status.b = 0.8;
+		status.color[0] = 1 * t;
+		status.color[1] = 1 * (1-t);
+		status.color[2] = 0.8;
 		status.t += time/400;
 		
 		var x = Math.sin(status.t)
@@ -81,7 +77,7 @@ for(let i=0; i<200; i++){
 	
 	data.push(pt);
 	
-	if(last != null){
+	if(last != null && false){
 		let line = Particle.getOneParicle();
 		
 		line.id = 'to_'+i;
@@ -160,8 +156,12 @@ canvas.onmouseleave = function(){
 };
 
 var paintbrush = new Paintbrush(canvas.getContext("webgl2"));
+paintbrush.initBuffer('point', 300);
+
 particle.clear = function(){
 	paintbrush.clear();
+};
+particle.finishBrush = function(){
 };
 particle.paintbrush = function(item){
 	var {type, position, status} = item; 
