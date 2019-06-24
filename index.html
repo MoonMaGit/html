@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>PARTICLE</title>
+	<script src="./particle.js"></script>
+	<script src="./paintbrush.js"></script>
+<style>
+canvas{
+	display: block;
+	width: 1000px;
+	height: 500px;
+	border: solid 1px gray;
+	margin: auto;
+	background-color: black;
+}
+</style>
+</head>
+<body>
+	<canvas width="1000" height="500"></canvas>
+</body>
+<script>
+var canvas = document.querySelector('canvas'),
+	{width, height} = canvas,
+	//context = canvas.getContext('2d'),
+	mouse = [0, 0];
+
+var data = [],
+	last = null;
+for(let i=0; i<200; i++){
+	let pt = Particle.getOneParicle();
+
+	pt.id = i;
+	pt.type = 'point';
+	//pt.position = [width*Math.random(), height*Math.random()];
+	pt.position = [500-4*i, 0+(4*i)];
+	pt.status = {
+		t: Math.random()*Math.PI*2,
+		x: 0.1,
+		y: 0.1,
+		
+		size: 4,
+		r: 1,
+		g: 0,
+		b: 0,
+		a: 0.5,
+	};
+	pt.track = function(time, mouse, relationship){
+		var {x, y} = this.status;
+		
+		this.position[0] += x*time;
+		this.position[1] += y*time;
+		
+		if(this.position[0] < 0){
+			this.status.x = Math.abs(this.status.x);
+		}else if(this.position[0] > width){
+			this.status.x = -Math.abs(this.status.x);
+		}
+		if(this.position[1] < 0){
+			this.status.y = Math.abs(this.status.y);
+		}else if(this.position[1] > height){
+			this.status.y = -Math.abs(this.status.y);
+		}
+	}.bind(pt);
+	pt.turn = function(time, mouse, relationship){
+		var {position} = mouse,
+			{id, status} = this,
+			x_d = position[0]-this.position[0],
+			y_d = position[1]-this.position[1],
+			d = x_d*x_d + y_d*y_d,
+			t = d/40000<1? d/40000: 1;
+		
+		status.r = 1 * t;
+		status.g = 1 * (1-t);
+		status.b = 0.8;
+		status.t += time/400;
+		
+		var x = Math.sin(status.t)
+		
+		status.size = (x*0.6 + 0.4) * 10;
+	}.bind(pt);
+	
+	data.push(pt);
+	
+	if(last != null){
+		let line = Particle.getOneParicle();
+		
+		line.id = 'to_'+i;
+		line.type = 'line';
+		line.position = [0, 0];
+		line.start = last;
+		line.end = pt;
+		line.status = {
+			r0: 1,
+			g0: 0,
+			b0: 0,
+			a0: 0.5,
+			
+			endX: 0,
+			endY: 0,
+			r1: 1,
+			g1: 0,
+			b1: 0,
+			a1: 0.5,
+		};
+		line.track = function(time, mouse, relationship){
+			var {start, end} = this;
+			line.position = start.position;
+			line.status.endX = end.position[0];
+			line.status.endY = end.position[1];
+		}.bind(line);
+		line.turn = function(time, mouse, relationship){
+			var {start, end} = this;
+			
+			line.status.r0 = start.status.r;
+			line.status.g0 = start.status.g;
+			line.status.b0 = start.status.b;
+			line.status.a0 = start.status.a;
+			
+			line.status.r1 = end.status.r;
+			line.status.g1 = end.status.g;
+			line.status.b1 = end.status.b;
+			line.status.a1 = end.status.a;
+		}.bind(line);
+		data.push(line);
+	}
+	
+	last = pt;
+}
+
+var particle = new Particle(
+	data,
+	function(data, relationship){
+		return relationship;
+	},
+	function(data, relationship){
+		return data;
+	},
+);
+particle.getMouse = function(){
+	var bounding = canvas.getBoundingClientRect(),
+		x = mouse[0]-bounding.left,
+		y = mouse[1]-bounding.top;
+
+	return {
+		position: [x, y],
+		click: false,
+		down: false,
+		up: false
+	};
+}
+
+canvas.onmousemove = function(e){
+	mouse = [e.clientX, e.clientY];
+};
+canvas.onmouseenter = function(){
+	particle.start();
+};
+canvas.onmouseleave = function(){
+	particle.stop();
+};
+
+var paintbrush = new Paintbrush(canvas.getContext("webgl2"));
+particle.clear = function(){
+	paintbrush.clear();
+};
+particle.paintbrush = function(item){
+	var {type, position, status} = item; 
+
+	paintbrush.draw({
+		type,
+		position,
+		status,
+	});
+};
+particle.start();
+</script>
+</html>
