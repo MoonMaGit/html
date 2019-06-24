@@ -147,8 +147,9 @@ void main() {
 				size: 1,
 				color: 4,
 			},
+			locationList: [],
 			
-			vao: null,
+			vao: [],
 			buffer: null,
 			type: 'POINT'
 		},
@@ -192,7 +193,7 @@ void main() {
 	initBuffer(type, sum){
 		var gl = this.gl,
 			brush = this.brush[type],
-			{data, attribute, program} = brush,
+			{data, attribute, program, locationList, vao} = brush,
 			attrNameList = [],
 			attrOffsetCountMap = {};
 			
@@ -200,7 +201,6 @@ void main() {
 		for(let k in attribute){
 			let count = attribute[k];
 			
-			attrNameList.push(k);
 			attrOffsetCountMap[k] = [];
 			attrOffsetCountMap[k][0] = offset;
 			attrOffsetCountMap[k][1] = count;
@@ -218,31 +218,35 @@ void main() {
 			pushZero(data, offset);
 		}
 			
-		var vao = gl.createVertexArray(),
-			buffer = gl.createBuffer();
-		gl.bindVertexArray(vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+		var buffer = gl.createBuffer();
 		
 		function setPointer(attrName, stride){
-			var attributeLocation = gl.getAttribLocation(program, "a_"+attrName),
+			var v = gl.createVertexArray(), 
+				attributeLocation = gl.getAttribLocation(program, "a_"+attrName),
 				offset = attrOffsetCountMap[attrName][0],
 				count = attrOffsetCountMap[attrName][1];
+			
+			
+			gl.bindVertexArray(v);
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
 			
 			gl.enableVertexAttribArray(attributeLocation);
 			gl.vertexAttribPointer(
 				attributeLocation, count, gl.FLOAT, false, 4 * stride, 4 * offset);
+				
+			locationList.push(attributeLocation);
+			vao.push(v);
 		}
 		for(let i=0; i<attrNameList.length; i++){
 			setPointer(attrNameList[i], offset);
 		}
 		
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-		gl.bindVertexArray(null);
+		//gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		//gl.bindVertexArray(null);
 		
 		brush.attribute = attrOffsetCountMap;
 		brush.stride = offset;
-		brush.vao = vao;
 		brush.buffer = buffer;
 	}
 		
@@ -320,13 +324,16 @@ void main() {
 		var {gl, brush} = this;
 		
 		var drawBrush = (brush)=>{
-			var {program, type, data, buffer, vao, offset, count} = brush;
+			var {program, type, data, buffer, vao, offset, count, locationList} = brush;
 			
 			gl.useProgram(program);
-			gl.bindVertexArray(vao);
 			
-			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+			for(let i=0; i<locationList.length; i++){
+				gl.bindVertexArray(vao[i]);
+				gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+				gl.enableVertexAttribArray(locationList[i]);
+			}
 			gl.drawArrays(gl[type], offset, count);
 				
 			gl.bindVertexArray(null);
@@ -334,7 +341,7 @@ void main() {
 		}
 		
 		for(let k in brush){
-			if(brush[k].vao){
+			if(brush[k].vao && brush[k].vao.length > 0){
 				drawBrush(brush[k]);
 			}
 		}
