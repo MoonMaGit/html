@@ -60,7 +60,7 @@ point_frag:
 precision mediump float;
 
 // we need to declare an output for the fragment shader
-
+in vec4 color;
 out vec4 outColor;
 
 void main() {
@@ -138,7 +138,9 @@ void main() {
 			fs: 'point_frag',
 			program: null,
 			data: [],
-			length: 0,
+			offset: 0,
+			count: 0,
+			stride: 0,
 			attribute: {
 				position: 2,
 				deep: 1,
@@ -147,6 +149,7 @@ void main() {
 			},
 			
 			vao: null,
+			buffer: null,
 			type: 'POINT'
 		},
 		line: {
@@ -228,7 +231,7 @@ void main() {
 			
 			gl.enableVertexAttribArray(attributeLocation);
 			gl.vertexAttribPointer(
-				attributeLocation, count, gl.FLOAT, false, stride, offset);
+				attributeLocation, count, gl.FLOAT, false, 4 * stride, 4 * offset);
 		}
 		for(let i=0; i<attrNameList.length; i++){
 			setPointer(attrNameList[i], offset);
@@ -237,12 +240,13 @@ void main() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindVertexArray(null);
 		
-		
-		
+		brush.attribute = attrOffsetCountMap;
+		brush.stride = offset;
 		brush.vao = vao;
+		brush.buffer = buffer;
 	}
 		
-	setUniform(program, position, status){
+	/*setUniform(program, position, status){
 		var {gl, width, height} = this,
 			positionUniformLocation = gl.getUniformLocation(program, "u_position"),
 			widthUniformLocation = gl.getUniformLocation(program, "u_width"),
@@ -264,14 +268,18 @@ void main() {
 				gl.uniform1f(uniformLocation, value);	
 			}
 		}
-	}
+	}*/
 	
 	clear(){
-		var {gl} = this;
+		var {gl, brush} = this;
 		
 		gl.lineWidth = 1;
 		gl.clearColor(0, 0, 0, 0);
 		gl.clear(gl.COLOR_BUFFER_BIT);
+		
+		for(let k in brush){
+			brush[k].count = 0;
+		}
 	}
 	
 	setFunction(){
@@ -283,19 +291,54 @@ void main() {
 	}
 	
 	draw(item){
-		var {gl} = this,
-			{type, position, status} = item,
+		var {type, position, status} = item,
 			brush = this.brush[type],
-			{program, vao, type, offset, count} = brush;
+			{data, attribute, stride, count} = brush;
 		
-		this.setFunction();
+		function setData(offset, size, list){
+			for(let i=0; i<size; i++){
+				var index = stride * count + offset + i;
+				data[index] = list[i];
+			}
+		}
 		
-		gl.useProgram(program);
-		this.setUniform(program, position, status);
+		setData(attribute.position[0], attribute.position[1], position);
+		for(let k in status){
+			if(attribute[k]){
+				if(status[k].length){
+					setData(attribute[k][0], attribute[k][1], status[k]);
+				}else{
+					setData(attribute[k][0], attribute[k][1], [status[k]]);
+				}
+			}
+		}
 		
-		gl.bindVertexArray(vao);
-		gl.drawArrays(gl[type], offset, count);
+		brush.count ++;
+	}
+	
+	show(){
+		var {gl, brush} = this;
+		
+		var drawBrush = (brush)=>{
+			var {program, type, data, buffer, vao, offset, count} = brush;
 			
-		gl.bindVertexArray(null);
+			gl.useProgram(program);
+			gl.bindVertexArray(vao);
+			
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+			gl.drawArrays(gl[type], offset, count);
+				
+			gl.bindVertexArray(null);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		}
+		
+		for(let k in brush){
+			if(brush[k].vao){
+				drawBrush(brush[k]);
+			}
+		}
+		
+		console.log('show...');
 	}
 }

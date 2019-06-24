@@ -35,6 +35,8 @@ for(let i=0; i<200; i++){
 	pt.position = [500-4*i, 0+(4*i)];
 	pt.status = {
 		t: Math.random()*Math.PI*2,
+		x: 0.01,
+		y: 0.01,
 		
 		deep: 0,
 		size: 4,
@@ -162,6 +164,7 @@ particle.clear = function(){
 	paintbrush.clear();
 };
 particle.finishBrush = function(){
+	paintbrush.show();
 };
 particle.paintbrush = function(item){
 	var {type, position, status} = item; 
