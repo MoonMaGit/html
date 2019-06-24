@@ -40,6 +40,10 @@ in vec2 a_position;
 in float a_deep;
 in float a_size;
 in vec4 a_color;
+
+uniform float u_width;
+uniform float u_height;
+
 out vec4 color;
 
 // all shaders have a main function
@@ -48,7 +52,7 @@ void main() {
   // gl_Position is a special variable a vertex shader
   // is responsible for setting
   gl_PointSize = a_size;
-  gl_Position = vec4(a_position, a_deep, 1.0);
+  gl_Position = vec4((a_position.x-u_width/2.0) / (u_width/2.0), (a_position.y-u_height/2.0) / -(u_height/2.0), a_deep, 1.0);
   color = a_color;
 }
 `,
@@ -72,54 +76,24 @@ void main() {
 line_vertex: 
 `#version 300 es
 
-// an attribute is an input (in) to a vertex shader.
-// It will receive data from a buffer
-in vec4 a_position;
+in vec2 a_position;
+in float a_deep;
+in vec4 a_color;
+
 uniform float u_width;
 uniform float u_height;
 
-uniform vec2 u_position;
-uniform float u_deep0;
-uniform float u_r0;
-uniform float u_g0;
-uniform float u_b0;
-uniform float u_a0;
-
-uniform float u_endX;
-uniform float u_endY;
-uniform float u_deep1;
-uniform float u_r1;
-uniform float u_g1;
-uniform float u_b1;
-uniform float u_a1;
 out vec4 color;
 
-// all shaders have a main function
 void main() {
-  //gl_PointSize = 4.0;
-  gl_Position = vec4(0.0, 0.0, 0.0, 1);
-  
-  if(a_position[0] == 0.0){
-    gl_Position.x = u_position.x;
-    gl_Position.y = u_position.y;
-	gl_Position.z = u_deep0;
-    color = vec4(u_r0, u_g0, u_b0, u_a0);
-  }else{
-    gl_Position.x = (u_endX-u_width/2.0) / (u_width/2.0);
-    gl_Position.y = (u_endY-u_height/2.0) / -(u_height/2.0);
-	gl_Position.z = u_deep1;
-	color = vec4(u_r1, u_g1, u_b1, u_a1);
-  }
+  gl_Position = vec4((a_position.x-u_width/2.0) / (u_width/2.0), (a_position.y-u_height/2.0) / -(u_height/2.0), a_deep, 1.0);
+  color = a_color;
 }
 `,
 line_frag: 
 `#version 300 es
-
-// fragment shaders don't have a default precision so we need
-// to pick one. mediump is a good default. It means "medium precision"
 precision mediump float;
 
-// we need to declare an output for the fragment shader
 in vec4 color;
 out vec4 outColor;
 
@@ -157,11 +131,20 @@ void main() {
 		line: {
 			vs: 'line_vertex',
 			fs: 'line_frag',
-			program: null,
-			data: [0, 1],
+			data: [],
 			offset: 0,
-			count: 2,
+			count: 0,
+			stride: 0,
+			attribute: {
+				position: 2,
+				deep: 1,
+				color: 4,
+			},
+			attrNameList: [],
+			locationList: [],
+			
 			vao: null,
+			buffer: null,
 			type: 'LINES'
 		}
 	}
@@ -224,29 +207,14 @@ void main() {
 		brush.vao = gl.createVertexArray();
 	}
 		
-	/*setUniform(program, position, status){
+	setUniform(program){
 		var {gl, width, height} = this,
-			positionUniformLocation = gl.getUniformLocation(program, "u_position"),
 			widthUniformLocation = gl.getUniformLocation(program, "u_width"),
-			heightUniformLocation = gl.getUniformLocation(program, "u_height"),
-			p = [];
-			
-		p[0] = (position[0]-width/2) / (width/2);
-		p[1] = (position[1]-height/2) / -(height/2);
-			
-		gl.uniform2fv(positionUniformLocation, p);
+			heightUniformLocation = gl.getUniformLocation(program, "u_height");
+		
 		gl.uniform1f(widthUniformLocation, width);
 		gl.uniform1f(heightUniformLocation, height);
-		
-		for(let k in status){		
-			var uniformLocation = gl.getUniformLocation(program, "u_"+k),
-				value = status[k];
-			
-			if(uniformLocation !== null){
-				gl.uniform1f(uniformLocation, value);	
-			}
-		}
-	}*/
+	}
 	
 	clear(){
 		var {gl, brush} = this;
@@ -281,7 +249,7 @@ void main() {
 			}
 		}
 		
-		setData(attribute.position[0], attribute.position[1], [(position[0]-width/2) / (width/2), (position[1]-height/2) / -(height/2)]);
+		setData(attribute.position[0], attribute.position[1], position);
 		for(let k in status){
 			if(attribute[k]){
 				if(status[k].length){
@@ -327,6 +295,7 @@ void main() {
 			
 			gl.useProgram(program);
 			this.setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride);
+			this.setUniform(program);
 			gl.drawArrays(gl[type], offset, count);
 				
 			gl.bindVertexArray(null);

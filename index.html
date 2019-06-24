@@ -35,8 +35,8 @@ for(let i=0; i<500; i++){
 	pt.position = [500-4*i, 0+(4*i)];
 	pt.status = {
 		t: Math.random()*Math.PI*2,
-		x: 0.06,
-		y: 0.06,
+		x: 0.09,
+		y: 0.09,
 		
 		deep: 0,
 		size: 4,
@@ -82,7 +82,7 @@ for(let i=0; i<500; i++){
 	if(last != null && false){
 		let line = Particle.getOneParicle();
 		
-		line.id = 'to_'+i;
+		line.id = 'from_'+i;
 		line.type = 'line';
 		line.position = [0, 0];
 		line.start = last;
