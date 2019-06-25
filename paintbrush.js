@@ -242,7 +242,7 @@ void main() {
 	draw(item){
 		var {type, position, status} = item,
 			brush = this.brush[type],
-			{data, attribute, repeat, stride, count} = brush;
+			{data, attribute, repeat, stride} = brush;
 			
 		var block = Object.assign({}, status);
 		block.position = position;
@@ -252,7 +252,7 @@ void main() {
 			}
 		}
 		
-		function setData(offset, size, list){
+		function setData(data, stride, count, offset, size, list){
 			for(let i=0; i<size; i++){
 				var index = stride * count + offset + i;
 				data[index] = list[i];
@@ -265,7 +265,7 @@ void main() {
 					let offset = attribute[k][0],
 						size = attribute[k][1];
 					
-					setData(offset, size, block[k].slice(i*size));
+					setData(data, stride, brush.count, offset, size, block[k].slice(i*size));
 				}
 			}
 			brush.count ++;	
