@@ -224,7 +224,7 @@ void main() {
 		
 		gl.lineWidth = 1;
 		gl.clearColor(0, 0, 0, 0);
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		
 		for(let k in brush){
 			brush[k].count = 0;
@@ -300,7 +300,7 @@ void main() {
 		this.setFunction();
 		
 		var drawBrush = (brush)=>{
-			var {program, type, data, buffer, vao, offset, count, attribute, attrNameList, locationList, stride, offset} = brush;
+			var {program, type, data, buffer, vao, offset, count, attribute, attrNameList, stride, offset} = brush;
 			
 			gl.useProgram(program);
 			this.setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride);

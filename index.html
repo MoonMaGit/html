@@ -21,7 +21,6 @@ canvas{
 <script>
 var canvas = document.querySelector('canvas'),
 	{width, height} = canvas,
-	//context = canvas.getContext('2d'),
 	mouse = [0, 0];
 
 var data = [],
@@ -31,7 +30,6 @@ for(let i=0; i<1000; i++){
 
 	pt.id = i;
 	pt.type = 'point';
-	//pt.position = [width*Math.random(), height*Math.random()];
 	pt.position = [500-4*i, 0+(4*i)];
 	pt.status = {
 		t: Math.random()*Math.PI*2,
