@@ -121,6 +121,7 @@ void main() {
 				size: 1,
 				color: 4,
 			},
+			repeat: 1,
 			attrNameList: [],
 			locationList: [],
 			
@@ -131,6 +132,7 @@ void main() {
 		line: {
 			vs: 'line_vertex',
 			fs: 'line_frag',
+			program: null,
 			data: [],
 			offset: 0,
 			count: 0,
@@ -140,6 +142,7 @@ void main() {
 				deep: 1,
 				color: 4,
 			},
+			repeat: 2,
 			attrNameList: [],
 			locationList: [],
 			
@@ -177,7 +180,7 @@ void main() {
 	initBuffer(type, sum){
 		var gl = this.gl,
 			brush = this.brush[type],
-			{data, attribute, program, attrNameList, locationList} = brush,
+			{data, attribute, repeat, program, attrNameList, locationList} = brush,
 			attrOffsetCountMap = {};
 			
 		var offset = 0;
@@ -198,7 +201,7 @@ void main() {
 					data.push(0);
 				}
 			}
-			pushZero(data, offset);
+			pushZero(data, offset*repeat);
 		}
 		
 		brush.attribute = attrOffsetCountMap;
@@ -237,10 +240,17 @@ void main() {
 	}
 	
 	draw(item){
-		var {width, height} = this,
-			{type, position, status} = item,
+		var {type, position, status} = item,
 			brush = this.brush[type],
-			{data, attribute, stride, count} = brush;
+			{data, attribute, repeat, stride, count} = brush;
+			
+		var block = Object.assign({}, status);
+		block.position = position;
+		for(let k in block){
+			if(!block[k].length){
+				block[k] = [block[k]]
+			}
+		}
 		
 		function setData(offset, size, list){
 			for(let i=0; i<size; i++){
@@ -249,18 +259,17 @@ void main() {
 			}
 		}
 		
-		setData(attribute.position[0], attribute.position[1], position);
-		for(let k in status){
-			if(attribute[k]){
-				if(status[k].length){
-					setData(attribute[k][0], attribute[k][1], status[k]);
-				}else{
-					setData(attribute[k][0], attribute[k][1], [status[k]]);
+		for(let i=0; i<repeat; i++){		
+			for(let k in block){
+				if(attribute[k]){
+					let offset = attribute[k][0],
+						size = attribute[k][1];
+					
+					setData(offset, size, block[k].slice(i*size));
 				}
 			}
+			brush.count ++;	
 		}
-		
-		brush.count ++;
 	}
 	
 	setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride){
