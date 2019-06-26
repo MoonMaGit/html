@@ -75,20 +75,34 @@ in float round;
 in float xshape;
 out vec4 outColor;
 
+bool shapeRound(vec2 coord, float x){
+  x = abs(x);
+  return distance(coord, vec2(0.5, 0.5)) > (1.0-x/2.0);
+}
+
+bool shapeX(vec2 coord, float x){
+  x = abs(x);
+  float xd = abs(coord.x-0.5) * 2.0;
+  float yd = abs(coord.y-0.5) * 2.0;
+  return xd > yd*x + (1.0-x) || yd > xd*x + (1.0-x);
+}
+
 void main() {
   // Just set the output to a constant redish-purple
   outColor = color;
   
   //round
-  if(distance(gl_PointCoord, vec2(0.5, 0.5)) > (1.0-round/2.0)){
-	  discard;
+  bool opposeRound = round < 0.0;
+  bool shapeRound = shapeRound(gl_PointCoord, round);
+  if(!opposeRound == shapeRound){
+    discard;
   }
   
   //X
-  float x = abs(gl_PointCoord.x-0.5) * 2.0;
-  float y = abs(gl_PointCoord.y-0.5) * 2.0;
-  if(x > y*xshape + (1.0-xshape) || y > x*xshape + (1.0-xshape)){
-	  discard;
+  bool opposeXshape = xshape < 0.0;
+  bool shapeXshape = shapeX(gl_PointCoord, xshape);
+  if(!opposeXshape == shapeXshape){
+    discard;
   }
 }
 `,
