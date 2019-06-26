@@ -87,7 +87,7 @@ void main() {
   //X
   float x = abs(gl_PointCoord.x-0.5) * 2.0;
   float y = abs(gl_PointCoord.y-0.5) * 2.0;
-  if(x > xshape + y*(1.0-xshape) || y > xshape + x*(1.0-xshape)){
+  if(x > y*xshape + (1.0-xshape) || y > x*xshape + (1.0-xshape)){
 	  discard;
   }
 }
