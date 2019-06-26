@@ -7,7 +7,7 @@
 <style>
 canvas{
 	display: block;
-	width: 1000px;
+	width: 1200px;
 	height: 500px;
 	border: solid 1px gray;
 	margin: auto;
@@ -16,7 +16,7 @@ canvas{
 </style>
 </head>
 <body>
-	<canvas width="1000" height="500"></canvas>
+	<canvas width="1200" height="500"></canvas>
 </body>
 <script>
 var canvas = document.querySelector('canvas'),
@@ -30,15 +30,17 @@ for(let i=0; i<1000; i++){
 
 	pt.id = i;
 	pt.type = 'point';
-	pt.position = [500-4*i, 0+(4*i)];
+	pt.position = [500-10*i, 0+(10*i)];
 	pt.status = {
 		t: Math.random()*Math.PI*2,
 		x: 0.09,
 		y: 0.09,
+		maxSize: 10,
 		
 		deep: 0,
-		size: 4,
+		size: 0,
 		round: 0,
+		xshape: 0.4,
 		color: [1, 0, 0, 0.5],
 	};
 	pt.track = function(time, mouse, relationship){
@@ -73,7 +75,7 @@ for(let i=0; i<1000; i++){
 		
 		var x = Math.sin(status.t)
 		
-		status.size = (x*0.6 + 0.4) * 10;
+		status.size = (x*0.6 + 0.4) * status.maxSize;
 	}.bind(pt);
 	
 	data.push(pt);

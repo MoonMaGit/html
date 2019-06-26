@@ -40,6 +40,7 @@ in vec2 a_position;
 in float a_deep;
 in float a_size;
 in float a_round;
+in float a_xshape;
 in vec4 a_color;
 
 uniform float u_width;
@@ -47,6 +48,7 @@ uniform float u_height;
 
 out vec4 color;
 out float round;
+out float xshape;
 
 // all shaders have a main function
 void main() {
@@ -57,6 +59,7 @@ void main() {
   gl_Position = vec4((a_position.x-u_width/2.0) / (u_width/2.0), (a_position.y-u_height/2.0) / -(u_height/2.0), a_deep, 1.0);
   color = a_color;
   round = a_round;
+  xshape = a_xshape;
 }
 `,
 point_frag: 
@@ -69,13 +72,22 @@ precision mediump float;
 // we need to declare an output for the fragment shader
 in vec4 color;
 in float round;
+in float xshape;
 out vec4 outColor;
 
 void main() {
   // Just set the output to a constant redish-purple
   outColor = color;
   
-  if(round == 1.0 && distance(gl_PointCoord, vec2(0.5, 0.5)) > 0.5){
+  //round
+  if(distance(gl_PointCoord, vec2(0.5, 0.5)) > (1.0-round/2.0)){
+	  discard;
+  }
+  
+  //X
+  float x = abs(gl_PointCoord.x-0.5) * 2.0;
+  float y = abs(gl_PointCoord.y-0.5) * 2.0;
+  if(x > xshape + y*(1.0-xshape) || y > xshape + x*(1.0-xshape)){
 	  discard;
   }
 }
@@ -129,6 +141,7 @@ void main() {
 				size: 1,
 				color: 4,
 				round: 1,
+				xshape: 1,
 			},
 			repeat: 1,
 			attrNameList: [],
