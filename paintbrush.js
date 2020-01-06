@@ -36,18 +36,30 @@ point_vertex:
 
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
-in vec4 a_position;
-uniform vec2 u_position;
-uniform float u_deep;
-uniform float u_size;
+in vec2 a_position;
+in float a_deep;
+in float a_size;
+in float a_round;
+in float a_xshape;
+in vec4 a_color;
+
+uniform float u_width;
+uniform float u_height;
+
+out vec4 color;
+out float round;
+out float xshape;
 
 // all shaders have a main function
 void main() {
 
   // gl_Position is a special variable a vertex shader
   // is responsible for setting
-  gl_PointSize = u_size;
-  gl_Position = a_position + vec4(u_position, u_deep, 0.0);
+  gl_PointSize = a_size;
+  gl_Position = vec4((a_position.x-u_width/2.0) / (u_width/2.0), (a_position.y-u_height/2.0) / -(u_height/2.0), a_deep, 1.0);
+  color = a_color;
+  round = a_round;
+  xshape = a_xshape;
 }
 `,
 point_frag: 
@@ -58,70 +70,64 @@ point_frag:
 precision mediump float;
 
 // we need to declare an output for the fragment shader
-uniform float u_r;
-uniform float u_g;
-uniform float u_b;
-uniform float u_a;
-
+in vec4 color;
+in float round;
+in float xshape;
 out vec4 outColor;
+
+bool shapeRound(vec2 coord, float x){
+  x = abs(x);
+  return distance(coord, vec2(0.5, 0.5)) > (1.0-x/2.0);
+}
+
+bool shapeX(vec2 coord, float x){
+  x = abs(x);
+  float xd = abs(coord.x-0.5) * 2.0;
+  float yd = abs(coord.y-0.5) * 2.0;
+  return xd > yd*x + (1.0-x) || yd > xd*x + (1.0-x);
+}
 
 void main() {
   // Just set the output to a constant redish-purple
-  outColor = vec4(u_r, u_g, u_b, u_a);
+  outColor = color;
+  
+  //round
+  bool opposeRound = round < 0.0;
+  bool shapeRound = shapeRound(gl_PointCoord, round);
+  if(!opposeRound == shapeRound){
+    discard;
+  }
+  
+  //X
+  bool opposeXshape = xshape < 0.0;
+  bool shapeXshape = shapeX(gl_PointCoord, xshape);
+  if(!opposeXshape == shapeXshape){
+    discard;
+  }
 }
 `,
 // line
 line_vertex: 
 `#version 300 es
 
-// an attribute is an input (in) to a vertex shader.
-// It will receive data from a buffer
-in vec4 a_position;
+in vec2 a_position;
+in float a_deep;
+in vec4 a_color;
+
 uniform float u_width;
 uniform float u_height;
 
-uniform vec2 u_position;
-uniform float u_deep0;
-uniform float u_r0;
-uniform float u_g0;
-uniform float u_b0;
-uniform float u_a0;
-
-uniform float u_endX;
-uniform float u_endY;
-uniform float u_deep1;
-uniform float u_r1;
-uniform float u_g1;
-uniform float u_b1;
-uniform float u_a1;
 out vec4 color;
 
-// all shaders have a main function
 void main() {
-  //gl_PointSize = 4.0;
-  gl_Position = vec4(0.0, 0.0, 0.0, 1);
-  
-  if(a_position[0] == 0.0){
-    gl_Position.x = u_position.x;
-    gl_Position.y = u_position.y;
-	gl_Position.z = u_deep0;
-    color = vec4(u_r0, u_g0, u_b0, u_a0);
-  }else{
-    gl_Position.x = (u_endX-u_width/2.0) / (u_width/2.0);
-    gl_Position.y = (u_endY-u_height/2.0) / -(u_height/2.0);
-	gl_Position.z = u_deep1;
-	color = vec4(u_r1, u_g1, u_b1, u_a1);
-  }
+  gl_Position = vec4((a_position.x-u_width/2.0) / (u_width/2.0), (a_position.y-u_height/2.0) / -(u_height/2.0), a_deep, 1.0);
+  color = a_color;
 }
 `,
 line_frag: 
 `#version 300 es
-
-// fragment shaders don't have a default precision so we need
-// to pick one. mediump is a good default. It means "medium precision"
 precision mediump float;
 
-// we need to declare an output for the fragment shader
 in vec4 color;
 out vec4 outColor;
 
@@ -139,20 +145,45 @@ void main() {
 			vs: 'point_vertex',
 			fs: 'point_frag',
 			program: null,
-			data: [0],
+			data: null,
 			offset: 0,
-			count: 1,
+			count: 0,
+			stride: 0,
+			attribute: {
+				position: 2,
+				deep: 1,
+				size: 1,
+				color: 4,
+				round: 1,
+				xshape: 1,
+			},
+			repeat: 1,
+			attrNameList: [],
+			locationList: [],
+			
 			vao: null,
+			buffer: null,
 			type: 'POINT'
 		},
 		line: {
 			vs: 'line_vertex',
 			fs: 'line_frag',
 			program: null,
-			data: [0, 1],
+			data: null,
 			offset: 0,
-			count: 2,
+			count: 0,
+			stride: 0,
+			attribute: {
+				position: 2,
+				deep: 1,
+				color: 4,
+			},
+			repeat: 2,
+			attrNameList: [],
+			locationList: [],
+			
 			vao: null,
+			buffer: null,
 			type: 'LINES'
 		}
 	}
@@ -164,24 +195,6 @@ void main() {
 				program = createProgram(gl, vertexShader, fragmentShader);
 				
 			this.brush[k].program = program;
-			
-			var {data} = brush,
-				positionAttributeLocation = gl.getAttribLocation(program, "a_position"),
-				positionBuffer = gl.createBuffer(),
-				vao = gl.createVertexArray();
-			
-			gl.bindVertexArray(vao);
-			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-			
-			gl.enableVertexAttribArray(positionAttributeLocation);
-			gl.vertexAttribPointer(
-				positionAttributeLocation, 1, gl.FLOAT, false, 0, 0);
-			
-			gl.bindBuffer(gl.ARRAY_BUFFER, null);
-			gl.bindVertexArray(null);
-			
-			this.brush[k].vao = vao;
 		}
 		
 		for(var k in this.brush){
@@ -199,37 +212,51 @@ void main() {
 		this.resize();
 		this.makeBrushes();
 	}
+	
+	initBuffer(type, sum){
+		var gl = this.gl,
+			brush = this.brush[type],
+			{attribute, repeat, program, attrNameList, locationList} = brush,
+			attrOffsetCountMap = {};
+			
+		var offset = 0;
+		for(let k in attribute){
+			let count = attribute[k];
+			
+			attrOffsetCountMap[k] = [];
+			attrOffsetCountMap[k][0] = offset;
+			attrOffsetCountMap[k][1] = count;
+			offset += count;
+			
+			attrNameList.push(k);
+		}
 		
-	setUniform(program, position, status){
+		brush.data = new Float32Array(sum * offset * repeat);
+		brush.attribute = attrOffsetCountMap;
+		brush.stride = offset;
+		brush.buffer = gl.createBuffer();
+		brush.vao = gl.createVertexArray();
+	}
+		
+	setUniform(program){
 		var {gl, width, height} = this,
-			positionUniformLocation = gl.getUniformLocation(program, "u_position"),
 			widthUniformLocation = gl.getUniformLocation(program, "u_width"),
-			heightUniformLocation = gl.getUniformLocation(program, "u_height"),
-			p = [];
-			
-		p[0] = (position[0]-width/2) / (width/2);
-		p[1] = (position[1]-height/2) / -(height/2);
-			
-		gl.uniform2fv(positionUniformLocation, p);
+			heightUniformLocation = gl.getUniformLocation(program, "u_height");
+		
 		gl.uniform1f(widthUniformLocation, width);
 		gl.uniform1f(heightUniformLocation, height);
-		
-		for(let k in status){		
-			var uniformLocation = gl.getUniformLocation(program, "u_"+k),
-				value = status[k];
-			
-			if(uniformLocation !== null){
-				gl.uniform1f(uniformLocation, value);	
-			}
-		}
 	}
 	
 	clear(){
-		var {gl} = this;
+		var {gl, brush} = this;
 		
 		gl.lineWidth = 1;
 		gl.clearColor(0, 0, 0, 0);
-		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		
+		for(let k in brush){
+			brush[k].count = 0;
+		}
 	}
 	
 	setFunction(){
@@ -241,19 +268,87 @@ void main() {
 	}
 	
 	draw(item){
-		var {gl} = this,
-			{type, position, status} = item,
+		var {type, position, status} = item,
 			brush = this.brush[type],
-			{program, vao, type, offset, count} = brush;
+			{data, attribute, repeat, stride} = brush;
+			
+		var block = Object.assign({}, status);
+		block.position = position;
+		for(let k in block){
+			if(!block[k].length){
+				block[k] = [block[k]]
+			}
+		}
+		
+		function setData(data, stride, count, offset, size, list){
+			for(let i=0; i<size; i++){
+				var index = stride * count + offset + i;
+				data[index] = list[i];
+			}
+		}
+		
+		for(let i=0; i<repeat; i++){		
+			for(let k in attribute){
+				let offset = attribute[k][0],
+					size = attribute[k][1],
+					list = [];
+				if(block[k]){
+					list = block[k].slice(i*size);
+				}else{
+					for(let i=0; i<size; i++){
+						list.push(0);
+					}
+				}
+				
+				setData(data, stride, brush.count, offset, size, list);
+			}
+			brush.count ++;	
+		}
+	}
+	
+	setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride){
+		var floatArray = data,
+			fsize = floatArray.BYTES_PER_ELEMENT;
+		
+		gl.bindVertexArray(vao);		
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, floatArray, gl.STATIC_DRAW);
+		
+		function setPointer(attrName, stride){
+			var attributeLocation = gl.getAttribLocation(program, "a_"+attrName),
+				offset = attribute[attrName][0],
+				count = attribute[attrName][1];
+			
+			gl.enableVertexAttribArray(attributeLocation);
+			gl.vertexAttribPointer(
+				attributeLocation, count, gl.FLOAT, false, fsize * stride, fsize * offset);
+		}
+		for(let i=0; i<attrNameList.length; i++){
+			setPointer(attrNameList[i], stride);
+		}
+	}
+	
+	show(){
+		var {gl, brush} = this;
 		
 		this.setFunction();
 		
-		gl.useProgram(program);
-		this.setUniform(program, position, status);
-		
-		gl.bindVertexArray(vao);
-		gl.drawArrays(gl[type], offset, count);
+		var drawBrush = (brush)=>{
+			var {program, type, data, buffer, vao, offset, count, attribute, attrNameList, stride, offset} = brush;
 			
-		gl.bindVertexArray(null);
+			gl.useProgram(program);
+			this.setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride);
+			this.setUniform(program);
+			gl.drawArrays(gl[type], offset, count);
+				
+			gl.bindVertexArray(null);
+			gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		}
+		
+		for(let k in brush){
+			if(brush[k].vao){
+				drawBrush(brush[k]);
+			}
+		}
 	}
 }
