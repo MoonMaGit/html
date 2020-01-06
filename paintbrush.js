@@ -231,7 +231,7 @@ void main() {
 			attrNameList.push(k);
 		}
 		
-		brush.data = new Float32Array(sum * offset);
+		brush.data = new Float32Array(sum * offset * repeat);
 		brush.attribute = attrOffsetCountMap;
 		brush.stride = offset;
 		brush.buffer = gl.createBuffer();

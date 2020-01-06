@@ -25,7 +25,7 @@ var canvas = document.querySelector('canvas'),
 
 var data = [],
 	last = null;
-for(let i=0; i<10000; i++){
+for(let i=0; i<100; i++){
 	let pt = Particle.getOneParicle();
 
 	pt.id = i;
@@ -160,8 +160,8 @@ canvas.onmouseleave = function(){
 };
 
 var paintbrush = new Paintbrush(canvas.getContext("webgl2"));
-paintbrush.initBuffer('point', 3000);
-paintbrush.initBuffer('line', 3000);
+paintbrush.initBuffer('point', 100);
+paintbrush.initBuffer('line', 100);
 
 particle.clear = function(){
 	paintbrush.clear();
