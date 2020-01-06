@@ -145,7 +145,7 @@ void main() {
 			vs: 'point_vertex',
 			fs: 'point_frag',
 			program: null,
-			data: [],
+			data: null,
 			offset: 0,
 			count: 0,
 			stride: 0,
@@ -169,7 +169,7 @@ void main() {
 			vs: 'line_vertex',
 			fs: 'line_frag',
 			program: null,
-			data: [],
+			data: null,
 			offset: 0,
 			count: 0,
 			stride: 0,
@@ -216,7 +216,7 @@ void main() {
 	initBuffer(type, sum){
 		var gl = this.gl,
 			brush = this.brush[type],
-			{data, attribute, repeat, program, attrNameList, locationList} = brush,
+			{attribute, repeat, program, attrNameList, locationList} = brush,
 			attrOffsetCountMap = {};
 			
 		var offset = 0;
@@ -231,15 +231,7 @@ void main() {
 			attrNameList.push(k);
 		}
 		
-		for(let i=0; i<sum; i++){
-			function pushZero(data, sum){
-				for(let i=0; i<sum; i++){
-					data.push(0);
-				}
-			}
-			pushZero(data, offset*repeat);
-		}
-		
+		brush.data = new Float32Array(sum * offset);
 		brush.attribute = attrOffsetCountMap;
 		brush.stride = offset;
 		brush.buffer = gl.createBuffer();
@@ -315,7 +307,7 @@ void main() {
 	}
 	
 	setAttribute(gl, program, data, buffer, vao, attribute, attrNameList, stride){
-		var floatArray = new Float32Array(data),
+		var floatArray = data,
 			fsize = floatArray.BYTES_PER_ELEMENT;
 		
 		gl.bindVertexArray(vao);		
