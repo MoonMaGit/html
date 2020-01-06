@@ -25,7 +25,7 @@ var canvas = document.querySelector('canvas'),
 
 var data = [],
 	last = null;
-for(let i=0; i<17000; i++){
+for(let i=0; i<10000; i++){
 	let pt = Particle.getOneParicle();
 
 	pt.id = i;
@@ -44,20 +44,29 @@ for(let i=0; i<17000; i++){
 		color: [1, 0, 0, 0.5],
 	};
 	pt.track = function(time, mouse, relationship){
-		var {x, y} = this.status;
+		var {x, y} = this.status,
+			inbox = false;
+
+		if(this.position[0] > 0 && this.position[0] < width && this.position[1] > 0 && this.position[1] < height){
+			inbox = true;
+		}
 		
 		this.position[0] += x*time;
 		this.position[1] += y*time;
 		
 		if(this.position[0] < 0){
 			this.status.x = Math.abs(this.status.x);
+			//if(inbox) this.position[0] = 0 - this.position[0];
 		}else if(this.position[0] > width){
 			this.status.x = -Math.abs(this.status.x);
+			//if(inbox) this.position[0] = width*2 - this.position[0];
 		}
 		if(this.position[1] < 0){
 			this.status.y = Math.abs(this.status.y);
+			//if(inbox) this.position[1] = 0 - this.position[1];
 		}else if(this.position[1] > height){
 			this.status.y = -Math.abs(this.status.y);
+			//if(inbox) this.position[1] = height*2 - this.position[1];
 		}
 	}.bind(pt);
 	pt.turn = function(time, mouse, relationship){
